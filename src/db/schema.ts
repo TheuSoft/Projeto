@@ -80,12 +80,16 @@ export const doctorsTable = pgTable("doctors", {
     .$onUpdate(() => new Date()),
 });
 
-export const doctorsTableRelations = relations(doctorsTable, ({ one }) => ({
-  clinic: one(clinicsTable, {
-    fields: [doctorsTable.clinicId],
-    references: [clinicsTable.id],
+export const doctorsTableRelations = relations(
+  doctorsTable,
+  ({ many, one }) => ({
+    clinic: one(clinicsTable, {
+      fields: [doctorsTable.clinicId],
+      references: [clinicsTable.id],
+    }),
+    appointments: many(appointmentsTable),
   }),
-}));
+);
 
 // enum
 
@@ -106,12 +110,16 @@ export const patientsTable = pgTable("patients", {
     .$onUpdate(() => new Date()),
 });
 
-export const patientsTableRelations = relations(patientsTable, ({ one }) => ({
-  clinic: one(clinicsTable, {
-    fields: [patientsTable.clinicId],
-    references: [clinicsTable.id],
+export const patientsTableRelations = relations(
+  patientsTable,
+  ({ one, many }) => ({
+    clinic: one(clinicsTable, {
+      fields: [patientsTable.clinicId],
+      references: [clinicsTable.id],
+    }),
+    appointments: many(appointmentsTable),
   }),
-}));
+);
 
 export const appointmentsTable = pgTable("appointments", {
   id: uuid("id").defaultRandom().primaryKey(),
