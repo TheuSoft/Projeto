@@ -1,8 +1,7 @@
-import { PlusIcon } from "lucide-react";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
 import {
   PageActions,
   PageContainer,
@@ -12,7 +11,12 @@ import {
   PageHeaderContent,
   PageTitle,
 } from "@/components/ui/page-container";
+import { db } from "@/db";
+import { doctorsTable } from "@/db/schema";
 import { auth } from "@/lib/auth";
+
+import AddDoctorButton from "./_components/add-doctor-button";
+import DoctorCard from "./_components/doctor-card";
 
 const DoctorsPage = async () => {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -24,30 +28,35 @@ const DoctorsPage = async () => {
     redirect("/clinic-form");
   }
 
+  const doctors = await db.query.doctorsTable.findMany({
+    where: eq(doctorsTable.clinicId, session.user.clinic.id),
+  });
+
   return (
-    <div>
-      <PageContainer>
-        <PageHeader>
-          <PageHeaderContent>
-            <PageTitle>Medicos</PageTitle>
-            <PageDescription>
-              Gerencie os médicos cadastrados no sistema
-            </PageDescription>
-          </PageHeaderContent>
-          <PageActions>
-            <Button>
-              <PlusIcon className="h-4 w-4" />
-              Novo Médico
-            </Button>
-          </PageActions>
-        </PageHeader>
-        <PageContent>
-          <div className="flex items-center justify-between">
-            <h1>Medicos</h1>
-          </div>
-        </PageContent>
-      </PageContainer>
-    </div>
+    <PageContainer>
+      <PageHeader>
+        <PageHeaderContent>
+          <PageTitle>Medicos</PageTitle>
+          <PageDescription>
+            Gerencie os médicos cadastrados no sistema
+          </PageDescription>
+        </PageHeaderContent>
+        <PageActions>
+          <AddDoctorButton />
+        </PageActions>
+      </PageHeader>
+      <PageContent>
+        <div className="flex items-center justify-between">
+          <h1>Medicos</h1>
+        </div>
+      </PageContent>
+      \
+      <div className="grid grid-cols-3 gap-6">
+        {doctors.map((doctor) => (
+          <DoctorCard key={doctor.id} doctor={doctor} />
+        ))}
+      </div>
+    </PageContainer>
   );
 };
 
