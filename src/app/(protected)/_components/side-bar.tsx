@@ -11,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,10 +32,9 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 
-// Menu items.
 const items = [
   {
-    title: "DashBoard",
+    title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
   },
@@ -45,7 +44,7 @@ const items = [
     icon: CalendarDays,
   },
   {
-    title: "Medicos",
+    title: "Médicos",
     url: "/doctors",
     icon: Stethoscope,
   },
@@ -60,6 +59,7 @@ export function AppSidebar() {
   const router = useRouter();
   const session = authClient.useSession();
   const pathname = usePathname();
+
   const handleSignOut = async () => {
     await authClient.signOut({
       fetchOptions: {
@@ -71,21 +71,17 @@ export function AppSidebar() {
   };
   return (
     <Sidebar>
+      <SidebarHeader className="border-b p-4">
+        <Image src="/logo.svg" alt="Doutor Agenda" width={136} height={28} />
+      </SidebarHeader>
       <SidebarContent>
-        <SidebarHeader className="flex items-center justify-center border-b">
-          <Image src="/logo.svg" alt="Syncliva" width={136} height={28} />
-        </SidebarHeader>
         <SidebarGroup>
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.url}
-                    className="data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
-                  >
+                  <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -104,11 +100,12 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg">
                   <Avatar>
-                    <AvatarImage />
-                    <AvatarFallback>f</AvatarFallback>
+                    <AvatarFallback>F</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm">{session.data?.user.name}</p>
+                    <p className="text-sm">
+                      {session.data?.user?.clinic?.name}
+                    </p>
                     <p className="text-muted-foreground text-sm">
                       {session.data?.user.email}
                     </p>
