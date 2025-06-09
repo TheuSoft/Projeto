@@ -50,7 +50,6 @@ const DoctorsPage = async () => {
           <h1>Medicos</h1>
         </div>
       </PageContent>
-      \
       <div className="grid grid-cols-3 gap-6">
         {doctors.map((doctor) => (
           <DoctorCard key={doctor.id} doctor={doctor} />
