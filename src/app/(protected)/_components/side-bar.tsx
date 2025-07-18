@@ -2,7 +2,6 @@
 
 import {
   CalendarDays,
-  Gem,
   LayoutDashboard,
   LogOut,
   Stethoscope,
@@ -12,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -70,10 +70,14 @@ export function AppSidebar() {
       },
     });
   };
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b p-4">
-        <Image src="/logo.svg" alt="Doutor Agenda" width={136} height={28} />
+        <div className="flex items-center justify-between">
+          <Image src="/logo.svg" alt="Doutor Agenda" width={136} height={28} />
+          <ThemeToggle />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -90,24 +94,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Outros</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === "/subscription"}
-                >
-                  <Link href="/subscription">
-                    <Gem />
-                    <span>Assinatura</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
