@@ -114,7 +114,6 @@ export const doctorsTable = pgTable("doctors", {
     .references(() => clinicsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   avatarImageUrl: text("avatar_image_url"),
-  // 1 - Monday, 2 - Tuesday, 3 - Wednesday, 4 - Thursday, 5 - Friday, 6 - Saturday, 0 - Sunday
   availableFromWeekDay: integer("available_from_week_day").notNull(),
   availableToWeekDay: integer("available_to_week_day").notNull(),
   availableFromTime: time("available_from_time").notNull(),
@@ -148,8 +147,18 @@ export const patientsTable = pgTable("patients", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   phoneNumber: text("phone_number").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
   sex: patientSexEnum("sex").notNull(),
+  cpf: text("cpf").notNull(), // ✅ novo campo
+
+  // ✅ novos campos para endereço conforme ViaCEP
+  addressZipCode: text("address_zipcode").notNull(),
+  addressStreet: text("address_street").notNull(),
+  addressNumber: text("address_number").notNull(),
+  addressNeighborhood: text("address_neighborhood").notNull(),
+  addressCity: text("address_city").notNull(),
+  addressState: text("address_state").notNull(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date()),
@@ -166,6 +175,13 @@ export const patientsTableRelations = relations(
   }),
 );
 
+// ✅ NOVO: Enum para status dos agendamentos
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "pending",
+  "confirmed",
+  "canceled",
+]);
+
 export const appointmentsTable = pgTable("appointments", {
   id: uuid("id").defaultRandom().primaryKey(),
   date: timestamp("date").notNull(),
@@ -179,6 +195,7 @@ export const appointmentsTable = pgTable("appointments", {
   doctorId: uuid("doctor_id")
     .notNull()
     .references(() => doctorsTable.id, { onDelete: "cascade" }),
+  status: appointmentStatusEnum("status").default("pending").notNull(), // ✅ NOVO CAMPO
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

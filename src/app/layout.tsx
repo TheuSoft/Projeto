@@ -8,9 +8,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { ReactQueryProvider } from "@/providers/react-query";
 import { ThemeProvider } from "@/providers/theme-provider";
 
+// Carregando a fonte do Google Fonts via App Router (Next.js 13+)
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
+  display: "swap", // ← importante para evitar FOUT (Flash of Unstyled Text)
 });
 
 export const metadata: Metadata = {
@@ -25,7 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} antialiased`}>
+      {/* Adicionando suppressHydrationWarning também no body */}
+      <body
+        className={`${manrope.variable} antialiased`}
+        suppressHydrationWarning
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

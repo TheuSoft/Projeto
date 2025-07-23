@@ -11,43 +11,50 @@ type Patient = typeof patientsTable.$inferSelect;
 export const patientsTableColumns: ColumnDef<Patient>[] = [
   {
     id: "name",
-    accessorKey: "name",
     header: "Nome",
+    accessorKey: "name",
   },
   {
     id: "email",
-    accessorKey: "email",
     header: "Email",
+    accessorKey: "email",
   },
   {
     id: "phoneNumber",
-    accessorKey: "phoneNumber",
     header: "Telefone",
-    cell: (params) => {
-      const patient = params.row.original;
-      const phoneNumber = patient.phoneNumber;
-      if (!phoneNumber) return "";
-      const formatted = phoneNumber.replace(
+    accessorKey: "phoneNumber",
+    cell: ({ row }) =>
+      row.original.phoneNumber?.replace(
         /(\d{2})(\d{5})(\d{4})/,
         "($1) $2-$3",
-      );
-      return formatted;
-    },
+      ) || "",
+  },
+  {
+    id: "cpf",
+    header: "CPF",
+    accessorKey: "cpf",
+    cell: ({ row }) => row.original.cpf || "",
   },
   {
     id: "sex",
-    accessorKey: "sex",
     header: "Sexo",
-    cell: (params) => {
-      const patient = params.row.original;
-      return patient.sex === "male" ? "Masculino" : "Feminino";
-    },
+    accessorKey: "sex",
+    cell: ({ row }) => (row.original.sex === "male" ? "Masculino" : "Feminino"),
+  },
+  {
+    id: "addressCity",
+    header: "Cidade",
+    accessorKey: "addressCity",
+  },
+  {
+    id: "addressNeighborhood",
+    header: "Bairro",
+    accessorKey: "addressNeighborhood",
   },
   {
     id: "actions",
-    cell: (params) => {
-      const patient = params.row.original;
-      return <PatientsTableActions patient={patient} />;
-    },
+    header: "",
+    enableSorting: false,
+    cell: ({ row }) => <PatientsTableActions patient={row.original} />,
   },
 ];

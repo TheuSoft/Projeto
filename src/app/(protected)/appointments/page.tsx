@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { DataTable } from "@/components/ui/data-table";
 import {
   PageActions,
   PageContainer,
@@ -15,9 +14,10 @@ import {
 import { db } from "@/db";
 import { appointmentsTable, doctorsTable, patientsTable } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import type { AppointmentWithRelations } from "@/types/appointments";
 
 import AddAppointmentButton from "./_components/add-appointment-button";
-import { appointmentsTableColumns } from "./_components/table-columns";
+import SearchableAppointmentsList from "./_components/searchable-appointments-list";
 
 const AppointmentsPage = async () => {
   const session = await auth.api.getSession({
@@ -45,6 +45,7 @@ const AppointmentsPage = async () => {
         patient: true,
         doctor: true,
       },
+      orderBy: (appointments, { desc }) => [desc(appointments.date)],
     }),
   ]);
 
@@ -58,13 +59,17 @@ const AppointmentsPage = async () => {
           </PageDescription>
         </PageHeaderContent>
         <PageActions>
-          {/* ✅ Botão corrigido aqui */}
           <AddAppointmentButton patients={patients} doctors={doctors} />
         </PageActions>
       </PageHeader>
 
       <PageContent>
-        <DataTable data={appointments} columns={appointmentsTableColumns} />
+        {/* ✅ Passar pacientes e médicos para o componente */}
+        <SearchableAppointmentsList
+          initialAppointments={appointments as AppointmentWithRelations[]}
+          patients={patients}
+          doctors={doctors}
+        />
       </PageContent>
     </PageContainer>
   );

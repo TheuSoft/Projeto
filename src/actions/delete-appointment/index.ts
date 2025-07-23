@@ -2,38 +2,51 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { z } from "zod";
 
 import { db } from "@/db";
 import { appointmentsTable } from "@/db/schema";
-import { auth } from "@/lib/auth";
-import { actionClient } from "@/lib/next-safe-action";
 
-export const deleteAppointment = actionClient
-  .schema(
-    z.object({
-      id: z.string().uuid(),
-    }),
-  )
-  .action(async ({ parsedInput }) => {
-    const session = await auth.api.getSession({
-      headers: await headers(),
+interface DeleteAppointmentParams {
+  appointmentId: string;
+}
+
+type ActionResult = {
+  success: boolean;
+  message: string;
+};
+
+export async function deleteAppointment({
+  appointmentId,
+}: DeleteAppointmentParams): Promise<ActionResult> {
+  try {
+    // Verificar se o agendamento existe e está cancelado
+    const existingAppointment = await db.query.appointmentsTable.findFirst({
+      where: eq(appointmentsTable.id, appointmentId),
     });
-    if (!session?.user) {
-      throw new Error("Unauthorized");
+
+    if (!existingAppointment) {
+      return { success: false, message: "Agendamento não encontrado" };
     }
-    const appointment = await db.query.appointmentsTable.findFirst({
-      where: eq(appointmentsTable.id, parsedInput.id),
-    });
-    if (!appointment) {
-      throw new Error("Agendamento não encontrado");
+
+    // Verificar se o agendamento está cancelado (só permite excluir cancelados)
+    if (existingAppointment.status !== "canceled") {
+      return {
+        success: false,
+        message: "Apenas agendamentos cancelados podem ser excluídos",
+      };
     }
-    if (appointment.clinicId !== session.user.clinic?.id) {
-      throw new Error("Agendamento não encontrado");
-    }
+
+    // Excluir o agendamento permanentemente
     await db
       .delete(appointmentsTable)
-      .where(eq(appointmentsTable.id, parsedInput.id));
+      .where(eq(appointmentsTable.id, appointmentId));
+
+    revalidatePath("/dashboard/appointments");
     revalidatePath("/appointments");
-  });
+
+    return { success: true, message: "Agendamento excluído permanentemente!" };
+  } catch (error) {
+    console.error("Erro ao excluir agendamento:", error);
+    return { success: false, message: "Erro ao excluir agendamento" };
+  }
+}

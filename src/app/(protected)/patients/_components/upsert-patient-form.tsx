@@ -1,14 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAction } from "next-safe-action/hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { PatternFormat } from "react-number-format";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import { upsertPatient } from "@/actions/upsert-patient";
+import {
+  UpsertPatientSchema,
+  upsertPatientSchema,
+} from "@/actions/upsert-patient/schema";
 import { Button } from "@/components/ui/button";
 import {
   DialogContent,
@@ -35,128 +37,148 @@ import {
 } from "@/components/ui/select";
 import { patientsTable } from "@/db/schema";
 
-const formSchema = z.object({
-  name: z.string().trim().min(1, {
-    message: "Nome é obrigatório.",
-  }),
-  email: z.string().email({
-    message: "Email inválido.",
-  }),
-  phoneNumber: z.string().trim().min(1, {
-    message: "Número de telefone é obrigatório.",
-  }),
-  sex: z.enum(["male", "female"], {
-    required_error: "Sexo é obrigatório.",
-  }),
-});
-
-interface UpsertPatientFormProps {
-  isOpen: boolean;
+interface Props {
   patient?: typeof patientsTable.$inferSelect;
-  onSuccess?: () => void;
+  onSuccess: () => void;
+  isOpen: boolean;
 }
 
-const UpsertPatientForm = ({
+export default function UpsertPatientForm({
   patient,
   onSuccess,
   isOpen,
-}: UpsertPatientFormProps) => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    shouldUnregister: true,
-    resolver: zodResolver(formSchema),
+}: Props) {
+  const form = useForm<UpsertPatientSchema>({
+    resolver: zodResolver(upsertPatientSchema),
     defaultValues: {
-      name: patient?.name ?? "",
-      email: patient?.email ?? "",
-      phoneNumber: patient?.phoneNumber ?? "",
-      sex: patient?.sex ?? undefined,
+      name: "",
+      email: "",
+      phoneNumber: "",
+      sex: undefined,
+      cpf: "",
+      addressZipCode: "",
+      addressStreet: "",
+      addressNumber: "",
+      addressNeighborhood: "",
+      addressCity: "",
+      addressState: "",
+      ...patient,
     },
   });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const watchCep = form.watch("addressZipCode");
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(patient);
+      form.reset({
+        name: "",
+        email: "",
+        phoneNumber: "",
+        sex: undefined,
+        cpf: "",
+        addressZipCode: "",
+        addressStreet: "",
+        addressNumber: "",
+        addressNeighborhood: "",
+        addressCity: "",
+        addressState: "",
+        ...patient,
+      });
     }
-  }, [isOpen, form, patient]);
+  }, [isOpen, patient, form]);
 
-  const upsertPatientAction = useAction(upsertPatient, {
-    onSuccess: () => {
-      toast.success("Paciente salvo com sucesso.");
-      onSuccess?.();
-    },
-    onError: () => {
+  useEffect(() => {
+    const fetchAddress = async () => {
+      const rawCep = watchCep?.replace(/\D/g, "");
+      if (rawCep?.length === 8) {
+        try {
+          const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
+          const data = await res.json();
+          if (!data.erro) {
+            form.setValue("addressStreet", data.logradouro || "");
+            form.setValue("addressNeighborhood", data.bairro || "");
+            form.setValue("addressCity", data.localidade || "");
+            form.setValue("addressState", data.uf || "");
+          }
+        } catch (error) {
+          console.error("Erro ao buscar endereço via CEP:", error);
+        }
+      }
+    };
+
+    fetchAddress();
+  }, [watchCep, form]);
+
+  const onSubmit = async (values: UpsertPatientSchema) => {
+    try {
+      setIsSubmitting(true);
+      await upsertPatient({ ...values, id: patient?.id }); // ✅ Session handled on server
+      toast.success("Paciente salvo com sucesso!");
+      onSuccess();
+    } catch (err) {
+      console.error("Erro ao salvar paciente:", err);
       toast.error("Erro ao salvar paciente.");
-    },
-  });
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    upsertPatientAction.execute({
-      ...values,
-      id: patient?.id,
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <DialogContent>
       <DialogHeader>
         <DialogTitle>
-          {patient ? patient.name : "Adicionar paciente"}
+          {patient ? "Editar paciente" : "Adicionar paciente"}
         </DialogTitle>
-        <DialogDescription>
-          {patient
-            ? "Edite as informações desse paciente."
-            : "Adicione um novo paciente."}
-        </DialogDescription>
+        <DialogDescription>Preencha os dados abaixo.</DialogDescription>
       </DialogHeader>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Nome */}
           <FormField
-            control={form.control}
             name="name"
+            control={form.control}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome do paciente</FormLabel>
+                <FormLabel>Nome</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Digite o nome completo do paciente"
-                    {...field}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* E-mail */}
           <FormField
-            control={form.control}
             name="email"
+            control={form.control}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="exemplo@email.com"
-                    {...field}
-                  />
+                  <Input type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* Telefone */}
           <FormField
-            control={form.control}
             name="phoneNumber"
+            control={form.control}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Número de telefone</FormLabel>
+                <FormLabel>Telefone</FormLabel>
                 <FormControl>
                   <PatternFormat
                     format="(##) #####-####"
                     mask="_"
-                    placeholder="(11) 99999-9999"
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value.value);
-                    }}
+                    allowEmptyFormatting
+                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v.formattedValue)}
                     customInput={Input}
                   />
                 </FormControl>
@@ -164,19 +186,18 @@ const UpsertPatientForm = ({
               </FormItem>
             )}
           />
+
+          {/* Sexo */}
           <FormField
-            control={form.control}
             name="sex"
+            control={form.control}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Sexo</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o sexo" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -188,19 +209,131 @@ const UpsertPatientForm = ({
               </FormItem>
             )}
           />
+
+          {/* CPF */}
+          <FormField
+            name="cpf"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF</FormLabel>
+                <FormControl>
+                  <PatternFormat
+                    format="###.###.###-##"
+                    mask="_"
+                    allowEmptyFormatting
+                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v.formattedValue)}
+                    customInput={Input}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* CEP */}
+          <FormField
+            name="addressZipCode"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CEP</FormLabel>
+                <FormControl>
+                  <PatternFormat
+                    format="#####-###"
+                    mask="_"
+                    allowEmptyFormatting
+                    value={field.value || ""}
+                    onValueChange={(v) => field.onChange(v.formattedValue)}
+                    customInput={Input}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Endereço */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              name="addressStreet"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Rua</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="addressNumber"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Número</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="addressNeighborhood"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bairro</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="addressCity"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cidade</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              name="addressState"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>UF</FormLabel>
+                  <FormControl>
+                    <Input {...field} maxLength={2} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <DialogFooter>
-            <Button
-              type="submit"
-              disabled={upsertPatientAction.isPending}
-              className="w-full"
-            >
-              {upsertPatientAction.isPending ? "Salvando..." : "Salvar"}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </form>
       </Form>
     </DialogContent>
   );
-};
-
-export default UpsertPatientForm;
+}

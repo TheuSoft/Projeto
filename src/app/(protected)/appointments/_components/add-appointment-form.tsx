@@ -162,6 +162,20 @@ const AddAppointmentForm = ({
     );
   };
 
+  // ✅ NOVA FUNÇÃO: Validação correta de data (CORREÇÃO PRINCIPAL)
+  const isDateDisabled = (date: Date) => {
+    // Criar data de hoje sem horário para comparação justa
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Criar cópia da data selecionada sem horário
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    // Desabilitar apenas datas anteriores a hoje
+    return selectedDate < today || !isDateAvailable(date);
+  };
+
   const isDateTimeEnabled = selectedPatientId && selectedDoctorId;
 
   return (
@@ -286,9 +300,7 @@ const AddAppointmentForm = ({
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date() || !isDateAvailable(date)
-                      }
+                      disabled={isDateDisabled} // ✅ CORREÇÃO: Usar nova função
                       initialFocus
                     />
                   </PopoverContent>

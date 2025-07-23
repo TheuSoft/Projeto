@@ -16,9 +16,11 @@ export const upsertPatient = actionClient
     const session = await auth.api.getSession({
       headers: await headers(),
     });
+
     if (!session?.user) {
       throw new Error("Unauthorized");
     }
+
     if (!session?.user.clinic?.id) {
       throw new Error("Clinic not found");
     }
@@ -28,7 +30,7 @@ export const upsertPatient = actionClient
       .values({
         ...parsedInput,
         id: parsedInput.id,
-        clinicId: session?.user.clinic?.id,
+        clinicId: session.user.clinic.id,
       })
       .onConflictDoUpdate({
         target: [patientsTable.id],
@@ -36,5 +38,6 @@ export const upsertPatient = actionClient
           ...parsedInput,
         },
       });
+
     revalidatePath("/patients");
   });
