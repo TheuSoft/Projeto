@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NumericFormat } from "react-number-format";
+import { toast } from "sonner";
 
 import { editAppointment } from "@/actions/edit-appointment";
 import { getAvailableTimes } from "@/actions/get-available-times"; // ajuste caminho se necessário
@@ -141,6 +142,7 @@ export function EditAppointmentModal({
       });
 
       if (result.success) {
+        toast.success("Agendamento atualizado com sucesso!");
         onOpenChange(false);
       } else {
         setErrorMessage(result.message);

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, Calendar, Clock, User, UserX } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { cancelAppointment } from "@/actions/cancel-appointment";
 import {
@@ -44,6 +45,7 @@ export function CancelConfirmationDialog({
     try {
       const result = await cancelAppointment({ appointmentId: appointment.id });
       if (result.success) {
+        toast.success("Agendamento cancelado com sucesso!");
         onSuccess?.();
         // **Não fechar automaticamente**: apenas altera o conteúdo
       } else {

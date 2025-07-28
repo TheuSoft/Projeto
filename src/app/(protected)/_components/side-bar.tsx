@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  FileText,
   LayoutDashboard,
   LogOut,
   Stethoscope,
@@ -53,6 +54,11 @@ const items = [
     title: "Pacientes",
     url: "/patients",
     icon: UsersRound,
+  },
+  {
+    title: "Relatórios",
+    url: "/reports",
+    icon: FileText,
   },
 ];
 

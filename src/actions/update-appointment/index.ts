@@ -39,6 +39,30 @@ export async function updateAppointment({
   status,
 }: UpdateAppointmentParams): Promise<ActionResult> {
   try {
+    // Verificar se o agendamento existe
+    const existingAppointment = await db.query.appointmentsTable.findFirst({
+      where: eq(appointmentsTable.id, appointmentId),
+    });
+
+    if (!existingAppointment) {
+      return { success: false, message: "Agendamento não encontrado" };
+    }
+
+    // Verificar se o agendamento pode ser editado (não está cancelado nem confirmado)
+    if (existingAppointment.status === "canceled") {
+      return {
+        success: false,
+        message: "Não é possível editar um agendamento cancelado",
+      };
+    }
+
+    if (existingAppointment.status === "confirmed" && status !== "confirmed") {
+      return {
+        success: false,
+        message: "Não é possível editar um agendamento confirmado",
+      };
+    }
+
     // ✅ Tipagem específica em vez de 'any'
     const updateData: PartialAppointmentUpdate = {
       updatedAt: new Date(),
@@ -57,8 +81,10 @@ export async function updateAppointment({
       .set(updateData)
       .where(eq(appointmentsTable.id, appointmentId));
 
-    revalidatePath("/dashboard/appointments");
+    // Revalidar páginas necessárias
+    revalidatePath("/dashboard");
     revalidatePath("/appointments");
+    revalidatePath("/reports");
 
     return { success: true, message: "Agendamento atualizado com sucesso!" };
   } catch (error) {

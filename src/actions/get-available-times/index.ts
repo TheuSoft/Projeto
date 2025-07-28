@@ -3,7 +3,7 @@
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { z } from "zod";
 
@@ -46,8 +46,12 @@ export const getAvailableTimes = actionClient
     if (!doctorIsAvailable) {
       return [];
     }
+    // Buscar apenas agendamentos ativos (não cancelados) do médico
     const appointments = await db.query.appointmentsTable.findMany({
-      where: eq(appointmentsTable.doctorId, parsedInput.doctorId),
+      where: and(
+        eq(appointmentsTable.doctorId, parsedInput.doctorId),
+        ne(appointmentsTable.status, "canceled") // ✅ Excluir agendamentos cancelados
+      ),
     });
     const appointmentsOnSelectedDate = appointments
       .filter((appointment) => {

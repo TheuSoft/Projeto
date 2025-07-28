@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { confirmAppointment } from "@/actions/confirm-appointment";
 import { Button } from "@/components/ui/button";
@@ -48,9 +49,8 @@ const ActionsCell = ({ appointment, onEdit }: ActionsCellProps) => {
       });
 
       if (result.success) {
-        // ✅ Removido: setSuccessDialogOpen
+        toast.success("Agendamento confirmado com sucesso!");
         console.log(`✅ Agendamento ${appointment.id} confirmado com sucesso.`);
-        // Aqui você pode integrar com um toast ou alert inline
       } else {
         setErrorMessage(result.message);
         setErrorDialogOpen(true);
@@ -94,7 +94,7 @@ const ActionsCell = ({ appointment, onEdit }: ActionsCellProps) => {
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          {appointment.status !== "canceled" && (
+          {appointment.status !== "canceled" && appointment.status !== "confirmed" && (
             <DropdownMenuItem onClick={handleEdit} disabled={isPending}>
               <Pencil className="mr-2 h-4 w-4" />
               Editar agendamento
