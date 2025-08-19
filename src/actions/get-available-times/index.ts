@@ -24,19 +24,29 @@ export const getAvailableTimes = actionClient
     }),
   )
   .action(async ({ parsedInput }) => {
+    console.log("🎯 getAvailableTimes called with:", parsedInput);
+    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
     if (!session) {
+      console.log("🚨 No session found");
       throw new Error("Unauthorized");
     }
-    if (!session.user.clinic) {
-      throw new Error("Clínica não encontrada");
-    }
+    
+    console.log("🎯 Session user:", session.user);
+    
+    // Remover verificação de clínica - médicos podem não ter clínica diretamente
+    // A validação será feita através do médico específico
+    
     const doctor = await db.query.doctorsTable.findFirst({
       where: eq(doctorsTable.id, parsedInput.doctorId),
     });
+    
+    console.log("🎯 Doctor found:", doctor);
+    
     if (!doctor) {
+      console.log("🚨 Doctor not found for ID:", parsedInput.doctorId);
       throw new Error("Médico não encontrado");
     }
     const selectedDayOfWeek = dayjs(parsedInput.date).day();
@@ -84,11 +94,19 @@ export const getAvailableTimes = actionClient
         date.format("HH:mm:ss") <= doctorAvailableTo.format("HH:mm:ss")
       );
     });
-    return doctorTimeSlots.map((time) => {
+    
+    const result = doctorTimeSlots.map((time) => {
       return {
         value: time,
         available: !appointmentsOnSelectedDate.includes(time),
         label: time.substring(0, 5),
       };
     });
+    
+    console.log("🎯 Final available times result:", result);
+    console.log("🎯 Doctor available from:", doctor.availableFromTime, "to:", doctor.availableToTime);
+    console.log("🎯 Doctor available days:", doctor.availableFromWeekDay, "to:", doctor.availableToWeekDay);
+    console.log("🎯 Selected date day of week:", dayjs(parsedInput.date).day());
+    
+    return result;
   });

@@ -10,8 +10,13 @@ import { usersToClinicsTable } from "@/db/schema";
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
-    usePlural: true,
-    schema,
+    usePlural: false, // Mudando para false já que suas tabelas estão no singular
+    schema: {
+      usersTable: schema.usersTable,
+      accountsTable: schema.accountsTable,
+      sessionsTable: schema.sessionsTable,
+      verificationsTable: schema.verificationsTable, // Aqui está o mapeamento explícito
+    },
   }),
   socialProviders: {
     google: {
@@ -27,11 +32,18 @@ export const auth = betterAuth({
           clinic: true,
         },
       });
-      // TODO: Ao adaptar para o usuário ter múltiplas clínicas, deve-se mudar esse código
+      
+      // Buscar informações completas do usuário incluindo role
+      const fullUser = await db.query.usersTable.findFirst({
+        where: eq(schema.usersTable.id, user.id),
+      });
+
       const clinic = clinics?.[0];
       return {
         user: {
           ...user,
+          role: fullUser?.role || "clinic_admin",
+          doctorId: fullUser?.doctorId,
           clinic: clinic?.clinicId
             ? {
                 id: clinic?.clinicId,

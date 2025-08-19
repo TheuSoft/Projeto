@@ -7,6 +7,7 @@ import {
   text,
   time,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -18,6 +19,10 @@ export const usersTable = pgTable("users", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+  // ✅ NOVO: Campo para definir o tipo de usuário
+  role: text("role").notNull().default("clinic_admin"), // clinic_admin, doctor
+  // ✅ NOVO: Referência para médico (se for um usuário médico)
+  doctorId: uuid("doctor_id").references(() => doctorsTable.id),
 });
 
 export const usersTableRelations = relations(usersTable, ({ many }) => ({
@@ -124,6 +129,12 @@ export const doctorsTable = pgTable("doctors", {
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date()),
+  // ✅ NOVO: Campos para sistema de convites
+  email: text("email"),
+  inviteToken: text("invite_token"),
+  inviteTokenExpiresAt: timestamp("invite_token_expires_at"),
+  invitedAt: timestamp("invited_at"),
+  registeredAt: timestamp("registered_at"),
 });
 
 export const doctorsTableRelations = relations(
@@ -162,6 +173,11 @@ export const patientsTable = pgTable("patients", {
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date()),
+}, (table) => {
+  return {
+    // Adicionando índice único para CPF + clinicId para evitar duplicação
+    cpfClinicIdx: uniqueIndex("patients_cpf_clinic_idx").on(table.cpf, table.clinicId),
+  };
 });
 
 export const patientsTableRelations = relations(

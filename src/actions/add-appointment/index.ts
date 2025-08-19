@@ -9,45 +9,46 @@ import { appointmentsTable } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { actionClient } from "@/lib/next-safe-action";
 
-import { getAvailableTimes } from "../get-available-times";
 import { addAppointmentSchema } from "./schema";
 
 export const addAppointment = actionClient
   .schema(addAppointmentSchema)
   .action(async ({ parsedInput }) => {
+    console.log("🔥🔥🔥 ACTION EXECUTED - INPUT:", JSON.stringify(parsedInput, null, 2));
+    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
-    if (!session?.user) {
-      throw new Error("Unauthorized");
+    
+    console.log("🔥🔥🔥 SESSION:", JSON.stringify(session, null, 2));
+    
+    if (!session?.user?.role || session.user.role !== "clinic_admin") {
+      throw new Error("Usuário não autorizado para criar agendamentos");
     }
-    if (!session?.user.clinic?.id) {
-      throw new Error("Clinic not found");
+    
+    if (!session.user.clinic?.id) {
+      throw new Error("Clínica não encontrada na sessão");
     }
-    const availableTimes = await getAvailableTimes({
-      doctorId: parsedInput.doctorId,
-      date: dayjs(parsedInput.date).format("YYYY-MM-DD"),
-    });
-    if (!availableTimes?.data) {
-      throw new Error("No available times");
-    }
-    const isTimeAvailable = availableTimes.data?.some(
-      (time) => time.value === parsedInput.time && time.available,
-    );
-    if (!isTimeAvailable) {
-      throw new Error("Time not available");
-    }
+    
+    // Convert date and time to datetime  
     const appointmentDateTime = dayjs(parsedInput.date)
       .set("hour", parseInt(parsedInput.time.split(":")[0]))
       .set("minute", parseInt(parsedInput.time.split(":")[1]))
       .toDate();
-
+    
+    // Create appointment
     await db.insert(appointmentsTable).values({
-      ...parsedInput,
-      clinicId: session?.user.clinic?.id,
+      patientId: parsedInput.patientId,
+      doctorId: parsedInput.doctorId,
+      clinicId: session.user.clinic.id,
       date: appointmentDateTime,
+      appointmentPriceInCents: parsedInput.appointmentPriceInCents,
+      status: "pending",
     });
-
+    
+    console.log("🔥🔥🔥 APPOINTMENT CREATED SUCCESSFULLY");
+    
     revalidatePath("/appointments");
-
+    
+    return { success: true };
   });

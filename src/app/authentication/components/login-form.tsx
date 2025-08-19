@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -45,37 +46,88 @@ const LoginForm = () => {
   });
 
   const handleSubmit = async (values: z.infer<typeof loginSchema>) => {
-    await authClient.signIn.email(
-      {
-        email: values.email,
-        password: values.password,
-      },
-      {
-        onSuccess: () => {
-          router.push("/dashboard");
+    try {
+      // 1. Primeiro validar se o usuário tem permissão para login como admin
+      const validateResponse = await fetch('/api/auth/validate-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        onError: () => {
-          toast.error("E-mail ou senha inválidos.");
+        body: JSON.stringify({
+          email: values.email,
+          expectedRole: 'clinic_admin',
+        }),
+      });
+
+      const validateData = await validateResponse.json();
+
+      if (!validateResponse.ok) {
+        if (validateResponse.status === 403) {
+          // Erro de role incorreto
+          form.setError("email", {
+            type: "manual",
+            message: validateData.error,
+          });
+          return;
+        } else if (validateResponse.status === 404) {
+          // Usuário não encontrado - vamos permitir que o better-auth trate
+        } else {
+          toast.error(validateData.error || "Erro ao validar login");
+          return;
+        }
+      }
+
+      // 2. Se passou na validação, fazer o login
+      await authClient.signIn.email(
+        {
+          email: values.email,
+          password: values.password,
         },
-      },
-    );
+        {
+          onRequest: () => {
+            form.clearErrors();
+          },
+          onSuccess: async () => {
+            router.push('/dashboard');
+          },
+          onError: (ctx) => {
+            if (ctx.error.message === "Invalid email or password") {
+              form.setError("email", {
+                type: "manual",
+                message: "Email ou senha inválidos",
+              });
+              form.setError("password", {
+                type: "manual",
+                message: "Email ou senha inválidos",
+              });
+            } else {
+              toast.error(ctx.error.message);
+            }
+          },
+        },
+      );
+    } catch (error) {
+      console.error("Erro no login:", error);
+      toast.error("Erro interno. Tente novamente.");
+    }
   };
 
   const handleGoogleLogin = async () => {
     await authClient.signIn.social({
       provider: "google",
       callbackURL: "/dashboard",
-      scopes: ["email", "profile"],
     });
   };
 
   return (
     <Card>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardHeader>
             <CardTitle>Login</CardTitle>
-            <CardDescription>Faça login para continuar.</CardDescription>
+            <CardDescription>
+              Entre com sua conta de administrador
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -109,7 +161,7 @@ const LoginForm = () => {
               )}
             />
           </CardContent>
-          <CardFooter>
+          <CardFooter className="pt-6">
             <div className="w-full space-y-2">
               <Button
                 type="submit"
@@ -152,6 +204,19 @@ const LoginForm = () => {
           </CardFooter>
         </form>
       </Form>
+      
+      {/* Link para criar conta */}
+      <div className="mt-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Não tem uma clínica?{" "}
+          <Link 
+            href="/authentication/create-account" 
+            className="text-primary hover:underline font-medium"
+          >
+            Crie sua conta
+          </Link>
+        </p>
+      </div>
     </Card>
   );
 };
